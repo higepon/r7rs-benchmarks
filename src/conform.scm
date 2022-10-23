@@ -1,6 +1,6 @@
 ;;; CONFORM -- Type checker, written by Jim Miller.
 
-(import (scheme base) (scheme read) (scheme write) (scheme time))
+(import (scheme base) (scheme read) (scheme write) (scheme time) (scheme process-context))
 
 ;;; Functional and unstable
 
@@ -260,26 +260,35 @@
   (define (delete-red-edges! from-node)
     (set-red-edges! from-node '()))
   (define (does-conform t1 t2)
-    (cond ((or (none-node? t1) (any-node? t2)) #t)
-          ((or (any-node? t1) (none-node? t2)) #f)
-          ((green-edge? t1 t2) #t)
-          ((red-edge? t1 t2) #t)
+    (display "does-conform")
+    (cond ((or (none-node? t1) (any-node? t2)) (display " 1=>#t\n") #t)
+          ((or (any-node? t1) (none-node? t2)) (display " 2=>#f\n") #f)
+          ((green-edge? t1 t2) (display " 3=>#t\n") #t)
+          ((red-edge? t1 t2) (display " 4=>#t\n") #t)
           (else
+          (display " => else\n")
            (add-red-edge! t1 t2)
            (let loop ((blues (blue-edges t2)))
              (if (null? blues)
-                 #t
+                 (begin (display " => else out\n") #t)
                  (let* ((current-edge (car blues))
                         (phi (operation current-edge)))
                    (and (has-op? phi t1)
+                        (display " => recusive1\n")
                         (does-conform
                          (res (sig phi t1))
                          (res (sig phi t2)))
+                        (display " => recusive2\n")                         
                         (does-conform
                          (arg (sig phi t2))
                          (arg (sig phi t1)))
+                        (display " => loop\n")                         
                         (loop (cdr blues)))))))))
   (let ((result (does-conform t1 t2)))
+    (newline)
+    (display "final\n")
+    (display result)
+    (exit)
     (for-each (if result greenify-red-edges! delete-red-edges!)
               nodes-with-red-edges-out)
     result))
